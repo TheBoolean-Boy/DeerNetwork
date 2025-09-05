@@ -1,6 +1,7 @@
 import { v2 as cloudinary } from "cloudinary"
 import User from "../models/user.model.js";
 import Post from "../models/post.model.js";
+import Notification from "../models/notification.model.js";
 
 export const createPost = async(req, res) => {
   try {
@@ -101,13 +102,27 @@ export const likeUnlikePost = async(req, res) => {
       return res.status(404).json({error:"Post not found"})
     }
 
-    const userLikedPost = post.likes.includes(userId);
-    if(userLikedPost){
-      await post.updateOne({_id:postId}, {$pull: {likes: userId}})
-      res.status(200).json({message:"Post disliked successfully"})
-    }
+    const userLikedPost = post.likes.includes(userId)
 
-    
+    console.log(userLikedPost)
+    if(userLikedPost){
+      //already liked so remove the like
+      await Post.updateOne({_id:postId}, {$pull: {likes: userId}})
+      res.status(200).json({message:"Post unliked successfully"})
+    }else{
+      //not yet liked so add the like
+      post.likes.push(userId)
+      await post.save();
+
+      //send a notification about getting a like on ya post
+      const notification = new Notification({
+        from: userId,
+        to: post.user,
+        type:"like"
+      })
+      await notification.save()
+      res.status(200).json({message:"Post liked successfully"})
+    }
 
   } catch (error) {
     console.log(`Error is likeUnlikePost controller ${error}`)
