@@ -108,10 +108,12 @@ export const likeUnlikePost = async(req, res) => {
     if(userLikedPost){
       //already liked so remove the like
       await Post.updateOne({_id:postId}, {$pull: {likes: userId}})
+      await User.updateOne({_id:userId}, {$pull: {likedPosts: postId}})
       res.status(200).json({message:"Post unliked successfully"})
     }else{
       //not yet liked so add the like
       post.likes.push(userId)
+      await User.updateOne({_id:userId}, {$push: {likedPosts: postId}})
       await post.save();
 
       //send a notification about getting a like on ya post
@@ -124,6 +126,28 @@ export const likeUnlikePost = async(req, res) => {
       res.status(200).json({message:"Post liked successfully"})
     }
 
+  } catch (error) {
+    console.log(`Error is likeUnlikePost controller ${error}`)
+    res.status(500).json(`Internal server error ${error.message}`)
+  }
+}
+
+export const getAllPost = async(req, res) =>{
+  try {
+    const allPosts = await Post.find().sort({createdAt: -1}).populate({
+      path:"user",
+      select:"-password"
+    })
+    .populate({
+      path:"comments.user",
+      select:"-password -email"
+    })
+
+    if(allPosts.length === 0){
+      return res.status(200).json([])
+    }
+
+    res.status(200).json(allPosts);
   } catch (error) {
     console.log(`Error is likeUnlikePost controller ${error}`)
     res.status(500).json(`Internal server error ${error.message}`)
