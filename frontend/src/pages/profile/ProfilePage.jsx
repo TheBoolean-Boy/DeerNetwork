@@ -52,7 +52,7 @@ const ProfilePage = () => {
 			<div className='flex-[4_4_0]  border-r border-gray-700 min-h-screen '>
 				{/* HEADER */}
 				{isLoading && <ProfileHeaderSkeleton />}
-				{!isLoading && !user && <p className='text-center text-lg mt-4'>User not found</p>}
+				{!isLoading && !user && <p className='text-center text-lg mt-4'>User not found Sir</p>}
 				<div className='flex flex-col'>
 					{!isLoading && user && (
 						<>
