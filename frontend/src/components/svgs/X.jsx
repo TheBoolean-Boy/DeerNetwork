@@ -1,5 +1,5 @@
 const XSvg = (props) => (
-  <svg width="800px" height="800px" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+  <svg width={props.width || "500px"} height={props.height || "500px"} aria-hidden='true' viewBox='0 0 400 400' fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
     <path d="M103.157 228.16C97.1175 206.603 77.6664 197.936 88.6369 175.668C97.1175 158.454 216.768 173.72 223.31 167.358C227.108 163.666 253.471 121.867 258.205 119.564C262.157 117.642 275.672 120.91 294.804 125.866C299.384 127.052 319.504 129.075 323.313 132.708C328.048 137.225 321.653 161.99 319.828 163.949C317.256 166.71 284.523 158.038 279.579 161.059C271.931 165.731 249.143 243.322 246.413 245.711C236.031 254.794 137.578 245.883 121.106 243.322" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
     <path d="M119.324 245.155C111.82 253.018 97.8435 278.228 97.8435 282.955C97.8435 289.231 95.8876 318.675 108.246 329.255" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
     <path d="M135.233 251.974C130.443 265.952 127.324 281.559 121.596 294.024" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
