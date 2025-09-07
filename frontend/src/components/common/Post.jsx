@@ -12,36 +12,74 @@ import LoadingSpinner from "./LoadingSpinner";
 const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
 	const postOwner = post.user;
-	const isLiked = false;
-	const {data:authuser} = useQuery({
+
+	const { data: authUser } = useQuery({
 		queryKey: ["authUser"]
 	})
+	const isLiked = post.likes.includes(authUser._id)
 
 	const queryClient = useQueryClient();
 
-	const {mutate:deletePost, isPending} = useMutation({
+	const { mutate: deletePost, isPending: isDeleting } = useMutation({
 		mutationFn: async () => {
 			console.log("Inside mutate function")
 			try {
 				const res = await fetch(`/api/post/${post._id}`, {
-				method: 'DELETE'
-			})
+					method: 'DELETE'
+				})
 
-			const data = res.json()
+				const data = res.json()
 
-			if(!res.ok){
-				throw new Error(data.error || "Something went wrong couldn't delete your post")
-			}
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong couldn't delete your post")
+				}
 			} catch (error) {
-			throw error;	
+				throw error;
 			}
 		},
 		onSuccess: () => {
 			toast.success("Post deleted successfully")
-			queryClient.invalidateQueries({queryKey: ["posts"]})
+			queryClient.invalidateQueries({ queryKey: ["posts"] })
 		}
 	})
-	const isMyPost = authuser._id === postOwner._id;
+
+	const { mutate: likePost, isPending: isLiking } = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch(`/api/post/like/${post._id}`, {
+					method: 'POST'
+				})
+
+				const data = await res.json();
+
+				if (!res.ok) {
+					throw new Error(data.error || "Erron liking Post")
+				}
+				return data
+			} catch (error) {
+				throw error
+			}
+		},
+
+		onSuccess: (updatedLikes) => {
+			toast.success(`${isLiked ? "You unliked this post" : "You liked this post"}`)
+
+			queryClient.setQueryData(["posts"], (oldData) => {
+			  return oldData.map((p) => { 
+					if (p._id === post._id) { 
+						return { ...p, likes: updatedLikes } 
+			  	} 
+				return p; 
+			 }) 
+		 })
+		},
+
+		onError: (error) => {
+			toast.error(error.message)
+		}
+	})
+
+	const isMyPost = authUser._id === postOwner._id;
 
 	const formattedDate = "1h";
 
@@ -56,7 +94,10 @@ const Post = ({ post }) => {
 		e.preventDefault();
 	};
 
-	const handleLikePost = () => {};
+	const handleLikePost = () => {
+		if (isLiking) return;
+		likePost();
+	};
 
 	return (
 		<>
@@ -78,10 +119,10 @@ const Post = ({ post }) => {
 						</span>
 						{isMyPost && (
 							<span className='flex justify-end flex-1'>
-							{ !isPending   && 
-								(<FaTrash className='cursor-pointer hover:text-red-500' onClick={handleDeletePost} />)
-							}
-							{isPending && <LoadingSpinner size="md"/>}
+								{!isDeleting &&
+									(<FaTrash className='cursor-pointer hover:text-red-500' onClick={handleDeletePost} />)
+								}
+								{isDeleting && <LoadingSpinner size="md" />}
 							</span>
 
 						)}
@@ -107,7 +148,7 @@ const Post = ({ post }) => {
 									{post.comments.length}
 								</span>
 							</div>
-							{/* We're using Modal Component from DaisyUI */}
+							{/* I am using Modal Component from DaisyUI */}
 							<dialog id={`comments_modal${post._id}`} className='modal border-none outline-none'>
 								<div className='modal-box rounded border border-gray-600'>
 									<h3 className='font-bold text-lg mb-4'>COMMENTS</h3>
@@ -166,15 +207,15 @@ const Post = ({ post }) => {
 								<span className='text-sm text-slate-500 group-hover:text-green-500'>0</span>
 							</div>
 							<div className='flex gap-1 items-center group cursor-pointer' onClick={handleLikePost}>
-								{!isLiked && (
+								{isLiking && <LoadingSpinner size="sm" />}
+								{!isLiked && !isLiking && (
 									<FaRegHeart className='w-4 h-4 cursor-pointer text-slate-500 group-hover:text-pink-500' />
 								)}
-								{isLiked && <FaRegHeart className='w-4 h-4 cursor-pointer text-pink-500 ' />}
+								{isLiked && !isLiking && <FaRegHeart className='w-4 h-4 cursor-pointer text-pink-500 ' />}
 
 								<span
-									className={`text-sm text-slate-500 group-hover:text-pink-500 ${
-										isLiked ? "text-pink-500" : ""
-									}`}
+									className={`text-sm group-hover:text-pink-500 ${isLiked ? "text-pink-500" : "text-slate-500"
+										}`}
 								>
 									{post.likes.length}
 								</span>
