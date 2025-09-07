@@ -8,17 +8,22 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import LoadingSpinner from "./LoadingSpinner";
+import { formatPostDate } from "../../utils/date";
 
 const Post = ({ post }) => {
 	const [comment, setComment] = useState("");
 	const postOwner = post.user;
+	const isMyPost = authUser._id === postOwner._id;
+	const formattedDate = formatPostDate(post.createdAt);
+
+	const queryClient = useQueryClient();
 
 	const { data: authUser } = useQuery({
 		queryKey: ["authUser"]
 	})
+
 	const isLiked = post.likes.includes(authUser._id)
 
-	const queryClient = useQueryClient();
 
 	const { mutate: deletePost, isPending: isDeleting } = useMutation({
 		mutationFn: async () => {
@@ -65,13 +70,13 @@ const Post = ({ post }) => {
 			toast.success(`${isLiked ? "You unliked this post" : "You liked this post"}`)
 
 			queryClient.setQueryData(["posts"], (oldData) => {
-			  return oldData.map((p) => { 
-					if (p._id === post._id) { 
-						return { ...p, likes: updatedLikes } 
-			  	} 
-				return p; 
-			 }) 
-		 })
+				return oldData.map((p) => {
+					if (p._id === post._id) {
+						return { ...p, likes: updatedLikes }
+					}
+					return p;
+				})
+			})
 		},
 
 		onError: (error) => {
@@ -79,19 +84,56 @@ const Post = ({ post }) => {
 		}
 	})
 
-	const isMyPost = authUser._id === postOwner._id;
+	const { mutate: commentPost, isPending: isCommenting, } = useMutation({
+		mutationFn: async () => {
+			try {
+				const res = await fetch(`/api/post/comment/${post._id}`, {
+					method: 'POST',
+					headers: {
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify({ text: comment})
+				})
 
-	const formattedDate = "1h";
+				const data = await res.json()
 
-	const isCommenting = false;
+				if (!res.ok) {
+					throw new Error(data.error || "Unable to post comment, try again")
+				}
+
+				return data;
+
+			} catch (error) {
+				throw error
+			}
+		},
+
+		onSuccess: (updatedComments) => {
+			toast.success("Your comment was posted")
+			setComment("")
+			queryClient.setQueryData(["posts"], (oldData) => {
+				return oldData.map( p => {
+					if(p._id === post._id){
+						return {...p, comments: updatedComments}
+					}
+					return p;
+				})
+			})
+		},
+
+		onError: (error) => {
+			toast.error(error.message)
+		}
+	})
 
 	const handleDeletePost = () => {
 		deletePost();
-
 	};
 
 	const handlePostComment = (e) => {
 		e.preventDefault();
+		if(isCommenting)return;
+		commentPost();
 	};
 
 	const handleLikePost = () => {
