@@ -27,7 +27,7 @@ const NotificationPage = () => {
 		}
 	})
 
-	const {mutate:deleteNotifications, isPending} = useMutation({
+	const {mutate:deleteNotifications} = useMutation({
 		mutationFn: async() => {
 			try {
 				const res = await fetch(`/api/notification`, {
