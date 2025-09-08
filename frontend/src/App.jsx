@@ -14,7 +14,7 @@ const App = () => {
 
 
   const { data:authUser, isLoading } = useQuery({
-    queryKey: ["authUser"],
+    queryKey: ['authUser'],
     queryFn: async () => {
       try {
         const res = await fetch("api/auth/me", {

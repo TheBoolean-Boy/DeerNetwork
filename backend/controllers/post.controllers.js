@@ -84,7 +84,12 @@ export const commentOnPost = async(req, res) => {
 
     await post.save()
 
-    res.status(200).json(post)
+    const updatedComments = await Post.findById(postId).populate({
+      path: "comments.user",
+      select:"-password"
+    }).select("comments")
+    
+    res.status(200).json(updatedComments.comments)
      
   }catch{
     console.log(`Error is commentOnPost controller ${error}`)
@@ -109,7 +114,10 @@ export const likeUnlikePost = async(req, res) => {
       //already liked so remove the like
       await Post.updateOne({_id:postId}, {$pull: {likes: userId}})
       await User.updateOne({_id:userId}, {$pull: {likedPosts: postId}})
-      res.status(200).json({message:"Post unliked successfully"})
+
+      //after unlike I am sending back updated likes list
+      const updatedLikes = post.likes.filter((id) => id.toString() !== userId.toString())
+      res.status(200).json(updatedLikes)
     }else{
       //not yet liked so add the like
       post.likes.push(userId)
@@ -123,7 +131,10 @@ export const likeUnlikePost = async(req, res) => {
         type:"like"
       })
       await notification.save()
-      res.status(200).json({message:"Post liked successfully"})
+
+      //same updateLikes optimisation here also
+      const updatedLikes = post.likes
+      res.status(200).json(updatedLikes)
     }
 
   } catch (error) {
@@ -209,7 +220,7 @@ export const getUserPost = async(req, res)=> {
   try {
     const {username} = req.params;
     const user = await User.findOne({username})
-    console.log(user)
+    // console.log(user)
     if(!user){
       return res.status(404).json({error: "User not found"})
     }

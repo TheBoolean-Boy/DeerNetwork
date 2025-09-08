@@ -33,7 +33,8 @@ const useFollow = () => {
         }),
         queryClient.invalidateQueries({
           queryKey: ["authUser"]
-        })
+        }),
+        
       ])
     },
 
