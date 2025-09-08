@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatMemberSinceDate } from "../../utils/date";
 import useFollow from "../../hooks/useFollow";
 import toast from "react-hot-toast";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const ProfilePage = () => {
 	const [coverImg, setCoverImg] = useState(null);
@@ -23,44 +24,44 @@ const ProfilePage = () => {
 
 	const coverImgRef = useRef(null);
 	const profileImgRef = useRef(null);
-	
-	const {username} = useParams();
+
+	const { username } = useParams();
 
 	const queryClient = useQueryClient();
-	const {data:authUser} = useQuery({
-		queryKey : ["authUser"],
+	const { data: authUser } = useQuery({
+		queryKey: ["authUser"],
 		queryFn: async () => {
-      try {
-        const res = await fetch("api/auth/me", {
-          method: 'GET',
-          credentials: "include"
-        })
-        const data = await res.json();
-        if(data.error) return null
-        if (!res.ok) {
-          throw new Error(data.error || "Something went wrong")
-        }
+			try {
+				const res = await fetch("api/auth/me", {
+					method: 'GET',
+					credentials: "include"
+				})
+				const data = await res.json();
+				if (data.error) return null
+				if (!res.ok) {
+					throw new Error(data.error || "Something went wrong")
+				}
 
-        console.log("Auth user is here", data);
-        return data;
-      } catch (error) {
-        throw new Error(error)
-      }
-    },
-    retry: false
+				console.log("Auth user is here", data);
+				return data;
+			} catch (error) {
+				throw new Error(error)
+			}
+		},
+		retry: false
 	})
-	const {follow, isPending} = useFollow();
+	const { follow, isPending } = useFollow();
+	const { isUpdatingProfile, updateProfile } = useUpdateUserProfile()
 
-	
-	const {data:user, isLoading, refetch, isRefetching} = useQuery({
+	const { data: user, isLoading, refetch, isRefetching } = useQuery({
 		queryKey: ["userProfile"],
-		queryFn: async() => {
+		queryFn: async () => {
 			try {
 				const res = await fetch(`/api/user/profile/${username}`)
 				const data = await res.json()
-				
-				if(!res.ok)throw new Error(data.error || "Couldn't fetch the user profile")
-					console.log("you viewing profile for", data)
+
+				if (!res.ok) throw new Error(data.error || "Couldn't fetch the user profile")
+				console.log("you viewing profile for", data)
 				return data
 			} catch (error) {
 				throw error
@@ -68,37 +69,6 @@ const ProfilePage = () => {
 		}
 	})
 
-	const { mutate: updateProfile, isPending: isUpdatingProfile } = useMutation({
-  mutationFn: async () => {
-    try {
-      const res = await fetch(`/api/user/update`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          coverImg,
-          profileImg
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Something went wrong");
-      }
-      return data;
-    } catch (error) {
-      throw new Error(error.message);
-    }
-  },
-  onSuccess: () => {
-    toast.success("Profile updated successfully");
-		Promise.all([
-			queryClient.invalidateQueries({queryKey: ['authUser']}),
-			queryClient.invalidateQueries({queryKey: ['userProfile']})
-		])
-  }
-});
 
 	const isMyProfile = authUser._id === user?._id;
 	const amIfollowing = authUser?.following.includes(user?._id)
@@ -114,8 +84,8 @@ const ProfilePage = () => {
 			reader.readAsDataURL(file);
 		}
 	};
-	
-	useEffect( () => {
+
+	useEffect(() => {
 		refetch()
 	}, [username, refetch, amIfollowing])
 
@@ -156,14 +126,14 @@ const ProfilePage = () => {
 								<input
 									type='file'
 									hidden
-                  accept="image/*"
+									accept="image/*"
 									ref={coverImgRef}
 									onChange={(e) => handleImgChange(e, "coverImg")}
 								/>
 								<input
 									type='file'
 									hidden
-                  accept="image/*"
+									accept="image/*"
 									ref={profileImgRef}
 									onChange={(e) => handleImgChange(e, "profileImg")}
 								/>
@@ -195,13 +165,19 @@ const ProfilePage = () => {
 										{console.log(amIfollowing)}
 										{!isPending && !amIfollowing && "Follow"}
 										{console.log(amIfollowing)}
-										
+
 									</button>
 								)}
 								{(coverImg || profileImg) && (
 									<button
 										className='btn btn-primary rounded-full btn-sm text-white px-4 ml-2'
-										onClick={() => updateProfile()}
+										onClick={async () => {
+
+											await updateProfile({ coverImg, profileImg })
+											setProfileImg(null)
+											setCoverImg(null)
+										}
+										}
 									>
 										{isUpdatingProfile ? "Updating..." : "Update"}
 									</button>

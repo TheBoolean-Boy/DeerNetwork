@@ -6,16 +6,16 @@ import toast from "react-hot-toast";
 const useFollow = () => {
   const queryClient = useQueryClient();
 
-  const {mutate:follow, isPending, error} = useMutation({
-    mutationFn: async(userId) => {
+  const { mutate: follow, isPending, error } = useMutation({
+    mutationFn: async (userId) => {
       try {
         const res = await fetch(`/api/user/follow/${userId}`, {
-          method:'POST'
+          method: 'POST'
         })
 
         const data = await res.json();
 
-        if(!res.ok){
+        if (!res.ok) {
           throw new Error(data.error || "Couldn't follow user something went wrong")
         }
 
@@ -25,17 +25,42 @@ const useFollow = () => {
       }
     },
 
-    onSuccess: () => {
-      
-      Promise.all( [
+    onSuccess: (data, userId) => {
+
+      Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["suggestedUsers"]
         }),
         queryClient.invalidateQueries({
           queryKey: ["authUser"]
         }),
-        
       ])
+
+      // Update authUser cache
+      queryClient.setQueryData(["authUser"], (old) => {
+        if (!old) return old;
+        const isFollowing = old.following.includes(userId);
+
+        return {
+          ...old,
+          following: isFollowing
+            ? old.following.filter((id) => id !== userId)
+            : [...old.following, userId],
+        };
+      });
+
+      // Update profile being viewed
+      queryClient.setQueryData(["userProfile"], (old) => {
+        if (!old) return old;
+        const isFollowed = old.followers.includes(data.currentUserId);
+        return {
+          ...old,
+          followers: isFollowed
+            ? old.followers.filter((id) => id !== data.currentUserId)
+            : [...old.followers, data.currentUserId],
+        };
+      });
+
     },
 
     onError: () => {
@@ -43,7 +68,7 @@ const useFollow = () => {
     }
   })
 
-  return {follow, isPending}
+  return { follow, isPending }
 }
 
 
